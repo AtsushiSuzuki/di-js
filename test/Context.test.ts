@@ -210,6 +210,21 @@ describe("Context", () => {
     assert.deepStrictEqual(actual2, {});
     assert.strictEqual(actual1, actual2);
   });
+
+  it("destroying child and parent context", async () => {
+    const ctx = new Context();
+
+    let destroyed = 0;
+    ctx.registerContext("hello", [], () => ({}), () => { destroyed++; });
+
+    const child = ctx.childContext();
+    await child.resolve("hello");
+
+    await child.destroy();
+    await ctx.destroy();
+
+    assert.strictEqual(1, destroyed);
+  });
 });
 
 function wait(ms: number): Promise<void> {

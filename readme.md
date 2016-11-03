@@ -42,7 +42,7 @@ const ctx = new Context();
 const app = express();
 app.use((req, res, next) => {
   // create new context per request
-  const child = ctx.createChild();
+  const child = ctx.childContext();
   req.ctx = child;
   res.on("end", () => {
     // dispose instances at end

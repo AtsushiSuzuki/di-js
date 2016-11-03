@@ -231,6 +231,8 @@ export class Context {
     debug(`destroying ${this.path() || "/"}`);
     await Promise.all(this.children.map((ctx) => ctx.destroy()));
     await Promise.all(Object.keys(this.instances).map((name) => this.dispose(this.instances[name])));
+
+    // TODO: unregister from parent's "children"
   }
 
   private dispose(inst: Instantiation): Promise<void> {
