@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import {Context} from "../Context";
+import {Context} from "../lib/Context";
 
 
 describe("Context", () => {

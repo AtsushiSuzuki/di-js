@@ -1,21 +1,38 @@
-const debug = require("debug")("Context");
+const debug = require("debug")("di");
 
 
-type Lifetime = "singleton"|"context"|"transient";
+/**
+ * specify component lifetime.
+ * "singleton": one instance per registered context.
+ * "context": one instance per resolving context.
+ * "transient": one instance per resolve. no dispose.
+ */
+export type Lifetime = "singleton"|"context"|"transient";
 
-interface Creator<T> {
+/**
+ * function to create component instance.
+ */
+export interface Creator<T> {
   (this: Context, dependencies: any[], args: any[]): any|Promise<any>;
 }
 
-interface Disposer<T> {
+/**
+ * function to destroy component instance.
+ */
+export interface Disposer<T> {
   (this: Context, instance: T): void|Promise<void>;
 }
 
-interface RegistrationParams<T> {
+export interface RegistrationParams<T> {
+  /** component name. */
   name: string;
+  /** component lifetime. defaults to "transient".*/
   lifetime?: Lifetime;
+  /** depending component names. */
   dependencies?: string[];
+  /** function to create component instance */
   create: Creator<T>;
+  /** function to destroy component instance. */
   dispose?: Disposer<T>;
 }
 
@@ -36,6 +53,9 @@ interface Instantiation {
   context: Context;
 }
 
+/**
+ * Context manages component dependency and lifetime.
+ */
 export class Context {
   private parent: Context|null = null;
   private children: Context[] = [];
@@ -55,6 +75,10 @@ export class Context {
     return nodes.join("/");
   }
 
+  /**
+   * register component of transient lifetime.
+   * "transient": one instance per resolve. no dispose.
+   */
   registerTransient<T>(name: string, dependencies: string[], create: Creator<T>) {
     this.register({
       name,
@@ -64,6 +88,10 @@ export class Context {
     });
   }
 
+  /**
+   * register component of context lifetime.
+   * "context": one instance per resolving context.
+   */
   registerContext<T>(name: string, dependencies: string[], create: Creator<T>, dispose?: Disposer<T>) {
     this.register({
       name,
@@ -74,6 +102,10 @@ export class Context {
     });
   }
 
+  /**
+   * register component of singleton lifetime.
+   * "singleton": one instance per registered context.
+   */
   registerSingleton<T>(name: string, dependencies: string[], create: Creator<T>, dispose?: Disposer<T>) {
     this.register({
       name,
@@ -84,6 +116,9 @@ export class Context {
     });
   }
 
+  /**
+   * register value as component.
+   */
   registerValue<T>(name: string, value: T) {
     this.register({
       name,
@@ -92,6 +127,9 @@ export class Context {
     });
   }
 
+  /**
+   * register component.
+   */
   register<T>({name, lifetime, dependencies, create, dispose}: RegistrationParams<T>): void {
     if (typeof name !== "string") {
       throw new TypeError(`"name" must be string`);
@@ -124,6 +162,9 @@ export class Context {
     };
   }
 
+  /**
+   * create or retrieve component instance.
+   */
   resolve(name: string, ...args: any[]): Promise<any> {
     return this.resolveImpl(name, args).createPromise;
   }
@@ -173,6 +214,9 @@ export class Context {
     };
   }
 
+  /**
+   * create child context to create new resolving scope.
+   */
   childContext(name?: string): Context {
     const child = new Context(name || `child[${this.children.length}]`);
     child.parent = this;
@@ -180,6 +224,9 @@ export class Context {
     return child;
   }
 
+  /**
+   * dispose all instantiated components.
+   */
   async destroy(): Promise<void> {
     debug(`destroying ${this.path() || "/"}`);
     await Promise.all(this.children.map((ctx) => ctx.destroy()));
